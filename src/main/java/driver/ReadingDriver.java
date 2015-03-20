@@ -69,4 +69,15 @@ public class ReadingDriver {
         return result;
     }
 
+    // 获得数组内容, 即逗号分隔符的内容
+    public static List<String> getArrayContents(String input) {
+        List<String> result = new ArrayList<String>();
+        String[] pieces = input.split(",");
+        for (String i:pieces)
+        {
+            result.add(i);
+        }
+        return result;
+    }
+
 }

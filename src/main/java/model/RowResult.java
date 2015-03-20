@@ -1,5 +1,6 @@
 package model;
 
+import driver.ReadingDriver;
 import parser.FloatParser;
 import parser.IntegerParser;
 import parser.StringParser;
@@ -7,15 +8,17 @@ import parser.UnreliableParser;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class RowResult {
+
     private List<List<Object>> rowResult;
+
     private List<Class> classes;
+
     private Map<Class, Class> classMap;
+
+    private Set<Integer> arrayRecord;
     private int colNum;
     public void addResult(List<Object> row, Object value) {
         row.add(value);
@@ -31,6 +34,7 @@ public class RowResult {
         rowResult = new ArrayList<List<Object>>();
         classes = new ArrayList<Class>();
         classMap = new HashMap<Class, Class>();
+        arrayRecord = new HashSet<Integer>();
         /*
         classes.add(Integer.class);
         classes.add(String.class);
@@ -56,6 +60,22 @@ public class RowResult {
                 classes.add(String.class);
             else if (type.equals("unreal"))
                 classes.add(UnreliableNumber.class);
+            else if (type.equals("-int")) {
+                classes.add(Integer.class);
+                arrayRecord.add(classes.size() - 1);
+            }
+            else if (type.equals("-float")) {
+                classes.add(Float.class);
+                arrayRecord.add(classes.size() - 1);
+            }
+            else if (type.equals("-string")) {
+                classes.add(String.class);
+                arrayRecord.add(classes.size() - 1);
+            }
+            else if (type.equals("-unreal")) {
+                classes.add(UnreliableNumber.class);
+                arrayRecord.add(classes.size() - 1);
+            }
         }
     }
 
@@ -65,12 +85,28 @@ public class RowResult {
         for (int i = 0; i < list.size(); i++) {
             Class clazz = classMap.get(classes.get(i % colNum));
             Class clazz1 = classes.get(i % colNum);
+
             Method method = clazz.getMethod("parse", String.class);
-            Object obj = method.invoke(clazz.newInstance(), list.get(i));
-            arrayList.add(obj);
-            if ((i + 1) % colNum == 0) {
-                rowResult.add(arrayList);
-                arrayList = new ArrayList<Object>();
+
+            if (arrayRecord.contains(i % colNum))
+            {
+                // 数组情况
+                List<String> arrayPieces = ReadingDriver.getArrayContents(list.get(i));
+                List<Object> arrayResult = new ArrayList<Object>();
+                for (int k = 0; k < arrayPieces.size(); k++)
+                {
+                    Object obj = method.invoke(clazz.newInstance(), arrayPieces.get(k));
+                    arrayResult.add(obj);
+                }
+                arrayList.add(arrayResult);
+
+            } else {
+                Object obj = method.invoke(clazz.newInstance(), list.get(i));
+                arrayList.add(obj);
+                if ((i + 1) % colNum == 0) {
+                    rowResult.add(arrayList);
+                    arrayList = new ArrayList<Object>();
+                }
             }
         }
     }
